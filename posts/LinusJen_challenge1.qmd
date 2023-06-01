@@ -1,7 +1,7 @@
 ---
-title: "Challenge 1 Solution"
+title: "Challenge 1 Solution - Railroad Employment"
 author: "Linus Jen"
-description: "Reading in data and creating a post"
+description: "Reading in data and creating a post for US State/County Railroad Employment Data in 2012"
 date: "5/30/2023"
 format:
   html:
