@@ -1,0 +1,37 @@
+---
+title: "Linus Jen"
+image: images/YourName.jpeg
+about:
+  template: solana
+  image-width: 15em
+  image-shape: round
+  image: images/LinusJen.jpeg
+  links:
+    - icon: github
+      text: Github
+      href: https://github.com/linusscjen
+---
+
+## Education/Work Background
+
+I graduated from UCLA in 2021 with a B.S. in statistics, and started my master's at UMass right after graduation. I've been working with MassMutual for about 2 years now as a jr. data scientist.
+
+## R experience
+
+R was the first "programming" language I learned, and I used it extensively during undergrad. However, I haven't touched R much since spring 2021, as I wanted to develop my Python skills. At one point in time, I'd say I was much more experienced with R, but I have forgotten a lot of things since then.
+
+## Research interests
+
+My interests mainly lie with data science overall - data wrangling, feature engineering and selection, and modeling. I do miss the interpretability and analysis aspect of stats (as black box models usually outperform linear models). I took COMPSCI 685 (Advanced NLP) this past semester, and would like to continue learning more about NLP as the field grows (though at this point, I don't know anyone who doesn't say they're interested in NLP).
+
+## Hometown
+
+I'm from Monterey Park, CA (a suburb in LA), and lived there until moving here to Amherst.
+
+## Hobbies
+
+Basketball is my main passion in life, and when I'm back in LA, I play a lot of pickleball.
+
+## Fun fact
+
+My family is named alphabetically starting from my oldest aunt (Anita) all the way down to me (Linus) and my sister (Megan).
