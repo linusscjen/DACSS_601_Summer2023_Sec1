@@ -1,11 +1,11 @@
 ---
 title: "Linus Jen"
-image: images/YourName.jpeg
+image: images/LinusJen.jpg
 about:
   template: solana
   image-width: 15em
   image-shape: round
-  image: images/LinusJen.jpeg
+  image: images/LinusJen.jpg
   links:
     - icon: github
       text: Github
