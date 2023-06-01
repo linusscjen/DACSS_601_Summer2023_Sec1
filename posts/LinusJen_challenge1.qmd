@@ -1,0 +1,146 @@
+---
+title: "Challenge 1 Solution"
+author: "Linus Jen"
+description: "Reading in data and creating a post"
+date: "5/30/2023"
+format:
+  html:
+    toc: true
+    code-fold: true
+    code-copy: true
+    code-tools: true
+    df-print: paged
+categories:
+  - challenge_1
+  - railroads
+  - faostat
+  - wildbirds
+---
+
+```{r setup}
+#| label: setup
+#| warning: false
+#| message: false
+
+library(tidyverse)
+library(readxl)
+
+knitr::opts_chunk$set(echo = TRUE, warning=FALSE, message=FALSE)
+```
+
+## Challenge Overview
+
+Today's challenge is to
+
+1)  read in a dataset, and
+
+2)  describe the dataset using both words and any supporting information (e.g., tables, etc)
+
+## Read in the Data
+
+For this homework, I decided to look at the `StateCounty2012.xls` dataset. I opened the file and noticed that the first three rows are part of the header, so I skipped those lines using the `skip` argument in the `read_xls()` function.
+
+```{r read_data}
+# Import data
+data <- read_xls("_data/StateCounty2012.xls", skip=3)
+```
+### Data preprocessing
+
+To ensure that the data was properly loaded in, I also looked at the top 10 rows of the dataset. I also noticed that there were only 3 columns in the `.xls` file, but 5 columns in our loaded dataset. To explore further, I applied the `is.na()` function to all columns, suspecting that the second and fourth columns were loaded improperly and were fully blank. After confirming this, I removed those columns from the dataset. Lastly, I noticed that there were some totals included in our rows, and these occurred when the `COUNTY` value was empty. We need to be mindful not to remove CANADA though as an observation, even though it doesn't have a `COUNTY` value!
+
+```{r preprocess}
+# Check head
+print(head(data, 10))
+
+# Find dimensions
+print(dim(data))
+
+# Check if columns are completely blank
+sapply(data, function(x) all(is.na(x)))  # We see that columns 2 and 4 are empty!
+
+# Check where `COUNTY` is blank
+data %>% filter(is.na(COUNTY))  # Notice that when `COUNTY` is empty, values are totals are not important
+```
+
+Thus, the following chunk of code cleans our dataset to only have US states, counties, and the total railroad employment.
+
+```{r clean_data}
+# Remove the 2 columns and when `COUNTY` is empty
+data_clean <- data %>%
+  select("STATE", "COUNTY", "TOTAL") %>%
+  filter(!is.na(COUNTY) | (STATE == "CANADA"))
+
+# Check dimensions
+dim(data_clean)
+```
+
+## Describe the data
+
+### Overview / Summary
+
+From the Excel file title, this dataset represents the total railroad employment by state and county for 2012. This data is on a county level, and most likely counts the number of railroad employees for each county, with summations for each state also included in the original `.xls` file (though it was removed for this dataset). This data might prove valuable if combined with other datasets, such as seeing how the employment per county or state might change over time (if historical data was gathered), checking for relationships being railroad tracks built or existing in each county and the number of employees in 2012 (if data was collected about the railroad track mileage itself), or how railroad employment per county relates back to state statistics, such as population, land size of the state, or unemployment rates of the state (assuming this data is gathered).
+
+From the findings below, we see that there are a total of 256,094 reported railroad employees in 2012. There are a total of 54 unique "counties" that include 2 US territories, Canada, and the District of Columbia. Overall, there seems to be a skew in the distribution of where the railroad employees are, though further geographical analysis needs to be done to make any concrete assumptions.
+
+### Data Exploration
+
+This section will provide a deeper dive into the data, and the exact commands used to get the information for the introduction and overview section above.
+
+First, let's look at the head of the data and the various data types.
+
+```{r}
+# Quick glance of data
+head(data_clean, 10)
+glimpse(data_clean)
+
+# Check for missingness
+colSums(is.na(data_clean))
+
+# Lastly, check for total number of railroad employees reported
+sum(data_clean$TOTAL)
+```
+From the output above, we see that there are 2,931 observations (rows) with 3 columns of the state name, the county name, and the total number of people employed in that county/state combination. Additionally, we see that there is 1 missing value for the `COUNTY` column, which is a result of all people employed in Canada being aggregated into one row. Lastly, there were a total of 256,094 total reported railroad employees in 2012.
+
+Next, let's look at what states are included in our dataset and the number of counties make up each state. 
+
+```{r analysis}
+# Number of states included in dataset
+print(paste0("Number of unique states: ", length(unique(data_clean$STATE))))
+
+# Check if there are counties with no employes
+data_clean %>% 
+  filter(TOTAL == 0) %>%
+  dim()
+
+# Check number of counties per state
+num_counties <- table(data_clean$STATE)
+print("Number of counties ")
+num_counties[order(num_counties, decreasing=TRUE)]
+```
+In the print statement, we see that there are 54 unique "states". Upon further analysis, we see that this is because Canada is counted as a state in addition to the 50 US states, and several US territories and the US capital are included: "AE" is the armed forces Africa, "AP" is the armed forces in the Pacific, and DC is the District of Columbia. Additionally, we see that ONLY counties with railroad employees are included in this list, so we cannot assume that all counties are included in this dataset.
+
+From our table, We see that Texas, Georgia, and Kentucky are the top three states that have the most counties with railroad employees.
+
+Next, we'll look at the railroad employment for each state.
+
+```{r state_analysis}
+state_agg <- data_clean %>% 
+  group_by(STATE) %>%
+  summarise(total_employment = sum(TOTAL)) %>%
+  arrange(desc(total_employment))
+state_agg
+```
+
+From the table above, we see that Texas, Illinois, and New York make up the top three states with the most people employed working on railroads, while Hawaii, army forces in Africa, and army forces in the Pacific make up the states with the least number of railroad employees. This isn't shocking. One hypothesis could be that many of the larger and more central states have more railroad employees. This is probably because products need to move across the country, so these states need more railroad tracks (and thus employees to build and maintain these tracks) for goods to move across the country.
+
+Lastly, we'll look at a simple distribution of the employee data across counties and states.
+```{r employees}
+# 5 number summary for county level
+summary(data_clean$TOTAL)
+
+# 5 number summary for state level
+summary(state_agg$total_employment)
+```
+On the county level, the data is clearly skewed right, as the median of 21 is far below the mean of 87.37. We see that there's a max of 8,207 railroad employees in one country, which is pretty large. However, there's also a fair amount of  counties with very little employees, as about 25% of counties have 7 or less railroad employees.
+
+On the state level, the numbers are far greater for number of railroad employees. The distribution is still skewed right, with the mean of 3,353 still being less than the mean of 4,742. There's a minimum of 1 railroad employee in a state, and a maximum of 19,839 railroad employees (in Texas, as seen in the previous table / code chunk).
