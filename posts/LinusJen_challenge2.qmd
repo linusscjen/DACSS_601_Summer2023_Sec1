@@ -1,0 +1,113 @@
+---
+title: "Challenge 2 - Hotel Bookings"
+author: "Linus Jen"
+description: "Data wrangling: using group() and summarise()"
+date: "6/5/2023"
+format:
+  html:
+    toc: true
+    code-fold: true
+    code-copy: true
+    code-tools: true
+    df-print: paged
+categories:
+  - challenge_2
+  - hotel_bookings
+  - Linus Jen
+---
+
+```{r}
+#| label: setup
+#| warning: false
+#| message: false
+
+library(tidyverse)
+
+knitr::opts_chunk$set(echo = TRUE, warning=FALSE, message=FALSE)
+```
+
+## Challenge Overview
+
+For this challenge, I will look at the `hotel_bookings.csv`. A quick Google search leads us to [*this Kaggle site*](https://www.kaggle.com/datasets/jessemostipak/hotel-booking-demand) that discusses the meaning for each variable in greater detail.
+
+```{r}
+data <- read_csv("_data/hotel_bookings.csv")
+head(data)
+```
+
+From the link and a quick glance above, this dataset includes booking information for hotels, including the hotel type, if the booking is cancelled, number of days between booking and the arrival date, date of arrival, number of weekend nights booked, etc.
+
+## Describe the data
+
+Using a combination of words and results of R commands, can you provide a high level description of the data? Describe as efficiently as possible where/how the data was (likely) gathered, indicate the cases and variables (both the interpretation and any details you deem useful to the reader to fully understand your chosen data).
+
+```{r}
+# General summary of data
+glimpse(data)
+
+# First, look at dates and number of bookings
+data %>%
+  mutate(arrival_date_month = factor(arrival_date_month, levels = month.name)) %>%
+  group_by(arrival_date_year, arrival_date_month) %>%
+  summarise(count = n()) %>%
+  arrange(arrival_date_year, arrival_date_month)
+
+# Next, look at countries
+data %>%
+  group_by(country) %>%
+  summarise(count = n()) %>%
+  arrange(country)
+
+# Check the types of hotels
+data %>%
+  select(hotel) %>% 
+  unique()
+```
+
+From the output above, we get a quick overview of the data we're working with. There are 119,390 rows and 32 columns, and they include a mix of dates, categories, and numerical values. This data includes arrival dates between July 2015 and August 2017 for hotels all across the world (though a quick lookthrough shows that there's a bias towards European countries). There are two types of hotels included in the dataset: resort hotels and city hotels. This dataset looks to be useful for people interested in doing analysis for hotel bookings, such as countries with a high number of hotel bookings, number of cancellations per country, the types of customer (parents vs. children ratio, type of customer, etc.) who book hotels, trends between the demographics of the room and popular destinations to visit or likelihood to cancel a visit, or other similar analyses. This would also be helpful for advertising agencies to check what markets or destinations are currently popular, and what regions could be emphasized for marketing purposes. Similarly, more analysis could be done looking at dates that tend to have lots of bookings, or when people start looking to book for popular dates.
+
+Because of how large the dataset is, I'll reduce the number of variables I do analysis on. Specifically, I'll look at `booking_changes`, `adults`, `children`, `babies`, `stays_in_weekend_nights`, `stays_in_week_nights`, and `adr`, or average daily rate. I'm interested in seeing if adult-only hotel bookings differ compared to those that have children or babies.
+
+```{r single_stats}
+# Subset data and look at total # of people
+data_sub <- data %>%
+  select(adults, children, babies, booking_changes, stays_in_weekend_nights, stays_in_week_nights, adr) 
+
+# Fill in NAs for the numeric values with 0
+data_sub <- data_sub %>% 
+  mutate_if(is.numeric, ~replace_na(., 0)) %>%
+  mutate(total_ppl = adults + children + babies,
+         has_kids = ifelse(children + babies == 0, FALSE, TRUE))
+
+
+# First, look at the summaries
+summary(data_sub)
+
+# Find cases where there are many adults
+data_sub %>%
+  filter(adults >= 5 | children > 2 | babies > 2) %>%
+  select(total_ppl, adults, children, babies) %>%
+  arrange(desc(total_ppl))
+
+```
+
+From our summary above, we see that the number of people tend to be around 0-2 people in total, as the number of adults is around 2, while there are rarely any children and babies in this dataset. It is interesting to note though that we see instances where there are 55 adults, 10 kids, or 10 babies, and from the table above, we can see that when the party is large, it is made up mostly of a large number of only one group (rather than a large group having many adults, kids, and/or babies). Additionally, of all the parties who had a hotel space, almost all of them don't have kids (110058 out of 119390 observations or `r 110058 / (110058 + 9332)`%), making this dataset heavily skewed towards people without children. For the `stays_in_week_nights` and `booking_changes`, the distributions are slightly skewed right, as the means are greater than their respective medians, while `stays_in_weekend_nights` seems to be almost symmetrical. However, all numeric variables clearly have outliers, as evident by a max `adr` of $5400 or `adults` having 55 people.
+
+
+## Provide Grouped Summary Statistics
+
+For this section, we will now see whether or not bookings with children led to differences in the distributions of the `total_ppl`, `adr`, `booking_changes`, `stays_in_week_nights`, and `stays_in_weekend_nights`. 
+
+
+```{r}
+data_sub %>% 
+  group_by(has_kids) %>%
+  select(booking_changes, stays_in_weekend_nights, stays_in_week_nights, adr, total_ppl) %>%
+  rename(c(bookingChanges = booking_changes, staysInWeekendNights = stays_in_weekend_nights, staysInWeekNights = stays_in_week_nights, totalPpl = total_ppl, hasKids = has_kids)) %>% 
+  summarise(across(everything(), list(sd = sd, min = min, quant1 = ~quantile(., 0.25), mean = mean, median = median, quant3 = ~quantile(., 0.75), max = max))) %>%
+  pivot_longer(contains("_"), names_to = c("colNames", ".value"), names_sep = "_") %>%
+  arrange(colNames, hasKids)
+  
+```
+
+The table above shows some comparisons between parties with and without children. Firstly, we see that parties with children tend to have more people in the reservation than those that are adult only. This makes sense, as having group trips for adults tends to be rare (in my opinion). This finding also can impact `adr`, as we see that the average daily rate is actually higher for parties with children than with children. This might be due to hotels charging more for children or because larger parties require more beds or space, thus increasing the average daily rate for these stays. We also see that groups with children tend to have a greater number of booking changes, and this can be explained by how kids tend to have unexpected and changing schedules that might impact travel plans (such as getting sick). We also see that parties with children tend to have longer stays during both the weekends and weekdays, but this could be attributed to how school breaks tend to be for longer periods of time (such as spring break being 1+ weeks long, or summer and winter breaks being multi-week, if not multi-month, respites). However, statistical analyses need to be run to ensure that these hypotheses are statistically significant, and because this data is heavily skewed towards people without children, more data should be collected to get a better sample with a closer proportion of people with and without kids.

@@ -13,8 +13,7 @@ format:
 categories:
   - challenge_1
   - railroads
-  - faostat
-  - wildbirds
+  - Linus Jen
 ---
 
 ```{r setup}
