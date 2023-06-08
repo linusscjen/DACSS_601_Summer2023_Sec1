@@ -1,0 +1,116 @@
+---
+title: "Challenge 3 Solution - US Household Incomes by Race and Year"
+author: "LInus Jen"
+description: "Tidy Data: Pivoting"
+date: "6/8/2023"
+format:
+  html:
+    toc: true
+    code-fold: true
+    code-copy: true
+    code-tools: true
+    df-print: paged
+categories:
+  - challenge_3
+  - Linus Jen
+  - usa_households
+---
+
+```{r}
+#| label: setup
+#| warning: false
+#| message: false
+
+library(tidyverse)
+
+knitr::opts_chunk$set(echo = TRUE, warning=FALSE, message=FALSE)
+```
+
+## Data Overview
+
+For this challenge, I will be using the `USA Households\*.xlsx` dataset. It's a bit messy, and was difficult for me to envision how to make it "tidy" following the rules listed on R's [tidy page](https://cran.r-project.org/web/packages/tidyr/vignettes/tidy-data.html). First, cleaning the data is quite the tedious / manual process... I wish I had found a quicker way.
+
+```{r}
+# Pull in data, making sure to skip 
+data_dirty <- readxl::read_excel("_data/USA Households by Total Money Income, Race, and Hispanic Origin of Householder 1967 to 2019.xlsx", skip=4)
+
+# Rename columns
+colnames(data_dirty) <- c("race_year", "pop_total", "total_perc", "under_15000", "15000_24999", "25000_34999", "35000_49999", "50000_74999", "75000_99999", "100000_149999", "150000_199999", "200000_plus", "med_inc_est", "med_inc_ME", "mean_inc_est", "mean_inc_ME")
+
+# Per census, convert "N" to be NA
+data_dirty[data_dirty == "N"] <- NA
+
+# Remove the last 31 rows
+data_dirty <- head(data_dirty, -31)
+
+# Remove all footnotes
+data_dirty <- data_dirty %>%
+  mutate(race_year = str_remove(race_year, "\\s\\d{1,2}.*"))
+
+# Add a column with each race
+# I hate that I have to do a loop...
+race_col <- c()
+for (i in 1:nrow(data_dirty)) {
+  if (str_detect(data_dirty[i, "race_year"], "\\d{4}")) {
+    race_col <- append(race_col, race_val)
+  } else {
+    race_val <- data_dirty$race_year[i]
+    race_col <- append(race_col, NA)
+  }
+}
+data_dirty$race_col <- race_col
+data_dirty <- data_dirty %>% filter(!is.na(race_col))
+
+# Rename year
+data_dirty <- rename(data_dirty, year = "race_year")
+
+data <- data_dirty
+data
+```
+
+### Briefly describe the data
+
+This dataset gives some information about the income for various races across the years. It gives the total number of people in the study, and the proportion of people who fall into certain income groups. The data also proves the median and mean income in for the observed group, as well as a margin of error for each aggregation.
+
+A lot of data cleaning was done earlier. To make this data "tidy", I will first split the data into 2 tables. The first table will hold the proportion of people who fall into each category, where the variables will be the year, race, and income bracket, while the value will be the proportion that falls into that category. The second table will hold the year and race, with values including the total number of people who fall into that year and race combination, the median and mean incomes for that year and race group, and the margin of errors for both aggregate functions. I split the tables into two because they show different things. The first one is comparing how proportions within income groups change for each year and race. The second one looks at statistics related to each year and race pairing.
+
+## Anticipate the final result
+
+```{r}
+# First, split data into 2 parts
+inc_bracket <- data %>% 
+  select(c(year, race_col, contains("0")))
+
+year_race <- data %>%
+  select(year, race_col, pop_total, med_inc_est, med_inc_ME, mean_inc_est, mean_inc_ME) %>%
+  rename(race = "race_col")
+
+# Analyze inc_bracket size
+dim(inc_bracket)
+
+# Analyze year_race
+dim(year_race)
+```
+Above, we split our data into `inc_bracket` and `year_race`. `inc_bracket` will contain the year, race, and income bracket as categories, and the value will be the proportion of people of that race for that year who fall into that income bracket. `inc_bracket` will be pivoted to be longer, and because it has 11 columns x 340 rows (two of which are kept constant), the resulting data frame should be a 3,060 (340 * 9) x 4 table. `year_race` will not need to be pivoted, as it's already in a tidy format.
+
+## Pivot the Data
+
+
+```{r}
+inc_long <- inc_bracket %>% 
+  pivot_longer(!c(year, race_col), names_to = "income_bracket", values_to = "prop (%)") %>%
+  rename(race = "race_col")
+
+# Check dim and show table
+dim(inc_long)
+inc_long
+
+# Show year_race table
+year_race
+```
+
+The tables above are finally tidy!
+
+For our new `inc_long` table that represents the proportion of people who fall into a specific income bracket, given the year and race of a person. This is "tidy" because all the variables are columns - `year`, `race` and `income_bracket` are all categories that a person can fall into, with an association proportion for that group given in the `prop (%)` column. Now, because the aggregation for the totals are different, a separate table was created as `year_race`. `year_race` includes groupings for each year and race of a person, and each column represents a different count of interest. We have the total number of people who fall into that group, the estimated median income of that group and associated margin of error, and the estimated mean income of that group and associated margin of error. It doesn't make sense to combine median and mean incomes (and their standard deviations) together, as they represent different things (even though they have the same scale of dollars). This is also why the population total isn't included. This follows the examples given in the tidy data paper found [*here*](https://vita.had.co.nz/papers/tidy-data.pdf) in tables 12 and 13.
+
+This was a challenging dataset, and took me **much** longer than I anticipated... that is all.
