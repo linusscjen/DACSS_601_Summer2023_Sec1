@@ -60,6 +60,7 @@ data <- data %>%
   mutate(`year_quarter` = quarter(yq(`Year and Quarter`), with_year=TRUE)) %>%
   # make tidy by pivot_longer()
   pivot_longer(!c(`Year and Quarter`, year_quarter), names_to="debt_type", values_to="debt_amount") %>%
+  mutate(debt_type = factor(debt_type, levels=unique(debt_type))) %>%
   select(-`Year and Quarter`)
 ```
 
@@ -70,6 +71,7 @@ data <- data %>%
 # View data
 head(data)
 glimpse(data)
+head(data$debt_type)
 ```
 
-From the output above, we now see our data in a tidy format. Firstly, our `year_quarter` column is the correct date type, using `lubridate` to convert the `YY:Q#` format to `YYYY.Q` format. The `debt_type` column contains the category of household debt - note that we kept the `total` column in case someone wanted to compare totals (though this category can be seen as redundant). Lastly, we have the `debt_amount` column that contains the debt (in trillions of US dollars).
+From the output above, we now see our data in a tidy format. Firstly, our `year_quarter` column is the correct date type, using `lubridate` to convert the `YY:Q#` format to `YYYY.Q` format. The `debt_type` column contains the category of household debt - note that we kept the `total` column in case someone wanted to compare totals (though this category can be seen as redundant). We also converted the column to be a set of factors, and ordered it based on the order of the columns presented in the dataset (and specifically keeping the "Other" and "Total" categories together). Lastly, we have the `debt_amount` column that contains the debt (in trillions of US dollars).
