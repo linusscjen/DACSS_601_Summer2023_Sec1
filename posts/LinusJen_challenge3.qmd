@@ -1,6 +1,6 @@
 ---
 title: "Challenge 3 Solution - US Household Incomes by Race and Year"
-author: "LInus Jen"
+author: "Linus Jen"
 description: "Tidy Data: Pivoting"
 date: "6/8/2023"
 format:
