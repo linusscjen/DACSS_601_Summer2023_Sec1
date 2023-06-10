@@ -1,0 +1,75 @@
+---
+title: "Challenge 4 Solution - Debt Dataset"
+author: "Linus Jen"
+description: "More data wrangling: pivoting"
+date: "6/9/2023"
+format:
+  html:
+    toc: true
+    code-fold: true
+    code-copy: true
+    code-tools: true
+    df-print: paged
+categories:
+  - challenge_4
+  - debt
+  - Linus Jen
+---
+
+```{r}
+#| label: setup
+#| warning: false
+#| message: false
+
+library(tidyverse)
+library(here)
+
+knitr::opts_chunk$set(echo = TRUE, warning=FALSE, message=FALSE)
+```
+
+## Read in data
+
+For this challenge, I will be working with the `debt_in_trillions.xlsx` dataset.
+
+```{r}
+data <- readxl::read_excel(here("posts", "_data", "debt_in_trillions.xlsx"))
+
+# Display data
+print(paste0("There are ", dim(data)[1], " rows and ", dim(data)[2], " columns in this dataset."))
+head(data)
+glimpse(data)
+
+# Check NAs
+data %>%
+  summarise(across(everything(), ~sum(is.na(.))))
+```
+
+### Briefly describe the data
+
+Based on the title of the `.csv` file and what is shown within the document (I opened the Excel file to see what the data looked like before importing it), this file shows debt for various sectors, in trillions of dollars. I found information about this dataset from [this site](https://www.newyorkfed.org/medialibrary/interactives/householdcredit/data/pdf/HHDC_2019Q4.pdf). Per this report's data dictionary, data includes the year and quarter, the mortgage debt, home equity revolving debt, auto loan debt, credit card debt, student loan debt, other debt, and the total debt, all in trillions of dollars. This was collected by the FRBNY Consumer Credit Panel, and comes from a 5% random sample of all individuals with a social security number and credit report.
+
+From the `Year and Quarter` column, we see that we get a 2 digit year and a quarter, separated by a `:`. All other columns are floats, and should be dollar amounts in the trillions.
+
+## Tidy Data (as needed)
+
+This data is clearly not tidy. All the numerical columns contain one type (debt in (\$)), while the column headers represent a category of debt. Thus, we need to `pivot_longer()` this data so that we get a column for the types of debt. Additionally, need to convert the `Year and Quarter` column to be a `lubridate` quarter value 
+
+```{r}
+data <- data %>%
+  # First year and quarter first
+  mutate(`year_quarter` = quarter(yq(`Year and Quarter`), with_year=TRUE)) %>%
+  # make tidy by pivot_longer()
+  pivot_longer(!c(`Year and Quarter`, year_quarter), names_to="debt_type", values_to="debt_amount") %>%
+  select(-`Year and Quarter`)
+```
+
+## Results
+
+
+```{r}
+# View data
+head(data)
+glimpse(data)
+```
+
+From the output above, we now see our data in a tidy format. Firstly, our `year_quarter` column is the correct date type, using `lubridate` to convert the `YY:Q#` format to `YYYY.Q` format. The `debt_type` column contains the category of household debt - note that we kept the `total` column in case someone wanted to compare totals (though this category can be seen as redundant). Lastly, we have the `debt_amount` column that contains the debt (in trillions of US dollars).
