@@ -1,6 +1,6 @@
 ---
-title: "Challenge 6 Instructions"
-author: "Sean Conway"
+title: "Challenge 6 Solution - Airbnbs in NYC 2019"
+author: "Linus Jen"
 description: "Visualizing Time and Relationships"
 date: "6/20/2023"
 format:
@@ -91,6 +91,7 @@ data %>%
   geom_text(aes(x=last_rev_year, y=num_props, label=num_props), vjust=-0.5) +
   theme_minimal() +
   labs(title="Breakdown of Properties Based on Year of Last Review",
+       subtitle="For Airbnbs listed in NYC",
        x="Year",
        y="Number of Properties") +
   scale_x_continuous(breaks=2011:2019, labels=2011:2019)
@@ -108,6 +109,7 @@ ggplot(aes(x=neighbourhood_group, y=val, fill=room_type)) +
   geom_bar(position="stack", stat="identity") +
   theme_minimal() +
   labs(title="Types of Rooms Offered per NYC Neighborhood Group",
+       subtitle="For Airbnbs listed in NYC",
        x="Neighborhood Group",
        y="Count") +
   guides(fill=guide_legend(title="Room Type"))
