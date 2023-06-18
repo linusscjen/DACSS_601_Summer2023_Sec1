@@ -1,0 +1,118 @@
+---
+title: "Challenge 6 Instructions"
+author: "Sean Conway"
+description: "Visualizing Time and Relationships"
+date: "6/20/2023"
+format:
+  html:
+    toc: true
+    code-copy: true
+    code-tools: true
+    df-print: paged
+categories:
+  - challenge_6
+  - air_bnb
+  - Linus Jen
+---
+
+```{r}
+#| label: setup
+#| warning: false
+#| message: false
+
+library(tidyverse)
+library(ggplot2)
+library(here)
+
+knitr::opts_chunk$set(echo = TRUE, warning=FALSE, message=FALSE)
+```
+
+
+## Read in data
+
+For this challenge, I will be working with the `AB_NYC_2019.csv` file.
+  
+
+```{r}
+data <- read_csv(here("posts", "_data", "AB_NYC_2019.csv"))
+
+# View data
+head(data)
+
+# Use dfSummary!
+print(summarytools::dfSummary(data,
+                              varnumbers=FALSE,
+                              plain.ascii=FALSE,
+                              style="grid",
+                              graph.magnif = 0.70,
+                              valid.col=FALSE),
+      method="render",
+      table.classes="table-condensed")
+
+# Check for NAs
+data %>% summarise(across(everything(), ~sum(is.na(.))))
+
+# Interesting that there are lots of missing data, let's check how many units have no reviews
+data %>% filter(number_of_reviews == 0) %>% nrow()
+```
+
+### Briefly describe the data
+
+This data is probably a collection of all Airbnbs in New York City in 2019, and includes variables such as cost, availability, the neighborhood for where the Airbnb is located, the room type, IDs for both the location and host, and various review information.
+
+Our data seems to already be tidy! Each row represents an Airbnb location, as every location has its own id. Other columns include the place’s `name`, the `host_id` for the host of the location, the `neighborhood_group` and `neighborhood` the place is located in NYC, the `latitude` and `longitude` for the Airbnb, the `room_type` of the Airbnb, `price` and `minimum_nights` that describe the specifics for booking the location, date of `last_review`, approximate `reviews_per_month`, the `calculated_host_listings_count`, and `availability_365` for the Airbnb for the year. There are 48,895 rows and 16 columns.
+
+While there are some missing data (such as the `name`, `host_name`, `last_review`, and `reviews_per_month`). It’s interesting though that the review related columns are both missing 10,052 rows, or 20.26% of all observations. This is probably because these units have never been rented out or are new, so customers have not left any reviews yet. My suspicions are supported because 10,052 rows have `number_of_reviews` as 0.
+
+```{r}
+# Only column that needs "fixing" is the `room_type` 
+unique(data$room_type)
+
+# 3 unique values, convert to factors
+data$room_type <- factor(data$room_type)
+
+# Convert `last_review` into yearly groups
+data <- data %>%
+  mutate(last_rev_year = year(last_review))
+```
+
+## Time Dependent Visualization
+
+For this section, I'll be looking at the number of properties based on the date of last review, by year. This is because `last_review` is the only date variable in the dataset. To do this, I will create a time series plot visualizing the dates on the x-axis, and the number of properties on the y-axis. I chose a line graph because this tends to be the best way to visualize time-series related data.
+
+```{r}
+data %>%
+  group_by(last_rev_year) %>%
+  filter(!is.na(last_rev_year)) %>%
+  summarise(num_props = n_distinct(id)) %>%
+  ggplot(aes(x=last_rev_year, y=num_props)) +
+  geom_line() +
+  geom_point() +
+  geom_text(aes(x=last_rev_year, y=num_props, label=num_props), vjust=-0.5) +
+  theme_minimal() +
+  labs(title="Breakdown of Properties Based on Year of Last Review",
+       x="Year",
+       y="Number of Properties") +
+  scale_x_continuous(breaks=2011:2019, labels=2011:2019)
+```
+
+## Visualizing Part-Whole Relationships
+
+For this section, I'll visualize the `room_type`s by each `neighborhood_group` and use a stacked barchart to visualize this data. This would provide a quick way to compare the number of each `room_type` across each `neighborhood_group`.
+
+```{r}
+data %>%
+  group_by(neighbourhood_group, room_type) %>%
+  summarise(val=n_distinct(id)) %>%
+ggplot(aes(x=neighbourhood_group, y=val, fill=room_type)) +
+  geom_bar(position="stack", stat="identity") +
+  theme_minimal() +
+  labs(title="Types of Rooms Offered per NYC Neighborhood Group",
+       x="Neighborhood Group",
+       y="Count") +
+  guides(fill=guide_legend(title="Room Type"))
+
+
+
+
+```
