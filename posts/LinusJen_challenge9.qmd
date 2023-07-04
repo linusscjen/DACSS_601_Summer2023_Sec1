@@ -44,13 +44,6 @@ numeric_summary <- function(dataframe, num_var, group_by_var) {
               "max_{{ num_var }}" := max({{ num_var }}, na.rm=TRUE),
               "sd_{{ num_var}}" := sd({{ num_var }}, na.rm=TRUE))
 }
-
-
-# Comparison
-birds %>%
-  group_by(pick(c(Area, Item))) %>%
-  summarise(min_val = min(Value, na.rm=TRUE))
-
 ```
 
 For my function `numeric_summary`, it accepts 3 arguments: the dataframe, a numeric variable to summarize over, and the group by variable if the user wants to aggregate variables by a certain category. This function gives the minimum, 1st quartile, mean, median, 3rd quartile, maximum, and standard deviation of a numeric variable. I chose to make this function because while working on my project, I found it really annoying to copy/paste / reuse the same code over and over again, and figured it would be interesting to quickly create a function for this.
