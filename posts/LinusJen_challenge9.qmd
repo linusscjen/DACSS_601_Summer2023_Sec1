@@ -1,0 +1,89 @@
+---
+title: "Challenge 9 Solution - Functions"
+author: "Linus Jen"
+description: "Creating a function"
+date: "7/4/2023"
+format:
+  html:
+    toc: true
+    code-copy: true
+    code-tools: true
+categories:
+  - challenge_9
+  - wildbirds
+---
+
+```{r}
+#| label: setup
+#| warning: false
+#| message: false
+
+library(tidyverse)
+library(ggplot2)
+library(here)
+
+knitr::opts_chunk$set(echo = TRUE, warning=FALSE, message=FALSE)
+```
+
+## Challenge Overview
+
+For this challenge, I will create a function that quickly summarizes a single numerical column via a 5 (or 6) number summary. I will also allow the function to have an optional `group_by` argument in case the user wanted to get summaries based on a specific category.
+
+```{r}
+numeric_summary <- function(dataframe, num_var, group_by_var) {
+  # Given the column of a dataframe, find the min, Q1, median, mean, Q3, max, and st. dev. for that column
+  # Optional: allow for group_bys
+  dataframe %>%
+    group_by(pick({{ group_by_var }})) %>%
+    summarise("min_{{ num_var }}" := min({{ num_var }}, na.rm=TRUE),
+              "q1_{{ num_var }}" := quantile({{ num_var }}, 0.25, 1, na.rm=TRUE),
+              "mean_{{ num_var }}" := round(mean({{ num_var }}, na.rm=TRUE), 4),
+              "med_{{ num_var }}" := median({{ num_var }}, na.rm=TRUE),
+              "q3_{{ num_var }}" := quantile({{ num_var }}, 0.75, 1, na.rm=TRUE),
+              "max_{{ num_var }}" := max({{ num_var }}, na.rm=TRUE),
+              "sd_{{ num_var}}" := sd({{ num_var }}, na.rm=TRUE))
+}
+
+
+# Comparison
+birds %>%
+  group_by(pick(c(Area, Item))) %>%
+  summarise(min_val = min(Value, na.rm=TRUE))
+
+```
+
+For my function `numeric_summary`, it accepts 3 arguments: the dataframe, a numeric variable to summarize over, and the group by variable if the user wants to aggregate variables by a certain category. This function gives the minimum, 1st quartile, mean, median, 3rd quartile, maximum, and standard deviation of a numeric variable. I chose to make this function because while working on my project, I found it really annoying to copy/paste / reuse the same code over and over again, and figured it would be interesting to quickly create a function for this.
+
+
+## Dataset
+
+To test this function, I used the `birds.csv` file, which is a collection of information about specific birds and their populations around the world at various points in time.
+
+```{r}
+# Pull in data
+birds <- read_csv(here("posts", "_data", "birds.csv"))
+
+# View the data
+birds
+```
+
+First, let's see how our function performs with only a numeric variable.
+
+```{r}
+# Test this out without a group_by
+birds %>% numeric_summary(num_var = Value)
+```
+
+The function works without any concerns! This now provides us a quick glance at the distribution of the `Value` column in this dataset.
+
+Next, let's see how this function performs with given additional variables to group by.
+
+```{r}
+# Test this with a group_by
+birds %>% numeric_summary(num_var = Value, group_by_var = Area)
+
+# Add in another variable
+birds %>% numeric_summary(num_var = Value, group_by_var = c(Area, Item))
+```
+
+The tables above show how flexible functions can be. Given any number of variables to group over, the function would know what to group by, and produce the same numeric summaries over each aggregate.
