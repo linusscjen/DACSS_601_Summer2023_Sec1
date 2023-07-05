@@ -1,0 +1,87 @@
+---
+title: "Challenge 10 Solution - Purrr"
+author: "Linus Jen"
+description: "purrr"
+date: "7/6/2023"
+format:
+  html:
+    toc: true
+    code-copy: true
+    code-tools: true
+categories:
+  - challenge_10
+  - Linus Jen
+  - wildbirds
+---
+
+```{r}
+#| label: setup
+#| warning: false
+#| message: false
+#| include: false
+
+library(tidyverse)
+library(ggplot2)
+library(here)
+
+knitr::opts_chunk$set(echo = TRUE, warning=FALSE, message=FALSE)
+```
+
+## Challenge Overview
+
+For this challenge, I will use the function I created in Challenge 9 with `map` from `purrr` to get summary statistics for various numeric variables. That was an obvious shortcoming of the previous function (only getting summary statistics for one numeric variable per function call), and `map` would address this concern.
+
+### Function
+
+```{r}
+numeric_summary <- function(dataframe, num_var) {
+  # Given the column of a dataframe, find the min, Q1, median, mean, Q3, max, and st. dev. for that column
+  # Change variable to match dplyr
+  
+  dataframe %>%
+    summarise(min = min(get(num_var), na.rm=TRUE),
+              #q1 = quantile(get(num_var), 0.25, na.rm=TRUE),
+              mean = round(mean(get(num_var), na.rm=TRUE), 4),
+              med = median(get(num_var), na.rm=TRUE),
+              #q3 = quantile(get(num_var), 0.75, na.rm=TRUE),
+              max_num_var = max(get(num_var), na.rm=TRUE),
+              sd = sd(get(num_var), na.rm=TRUE))
+}
+```
+
+My function `numeric_summary` accepts 2 arguments: the dataframe, and a numeric variable to summarize over. This function gives the minimum, 1st quartile, mean, median, 3rd quartile, maximum, and standard deviation of a numeric variable. I chose to make this function because while working on my project, I found it really annoying to copy/paste and reuse the same code over and over again, and figured it would be interesting to quickly create a function for this.
+
+One thing to note is that I removed the functionality for the optional `group_by` argument. I spent way too long trying to add in a third argument to the group by, and trying to make it optional, but the `pmap` function kept returning odd errors. As a result, I decided to remove that from ability from the function.
+
+## Application
+
+Again, I will use the `birds.csv` file, which is a collection of information about specific birds and their populations around the world at various points in time.
+
+```{r}
+# Pull in data
+birds <- read_csv(here("posts", "_data", "birds.csv"))
+
+# View the data
+birds
+
+# use dfSummary
+print(summarytools::dfSummary(birds,
+                              varnumbers=FALSE,
+                              plain.ascii=FALSE,
+                              style="grid",
+                              graph.magnif = 0.70,
+                              valid.col=FALSE),
+      method="render",
+      table.classes="table-condensed")
+```
+
+Given our dataset and function, let's say we're interested in seeing summary statistics for The `Value`, `Year`, and `Item Code` columns.
+
+```{r}
+# Apply map
+map2(list(birds, birds, birds),
+     list("Value", "Year", "Item Code"),
+     numeric_summary)
+```
+
+
